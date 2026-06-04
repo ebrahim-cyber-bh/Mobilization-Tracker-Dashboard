@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobilization Tracker Dashboard</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- CSS Files -->
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/dashboard.css">
+    <link rel="stylesheet" href="styles/animations.css">
+    
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!--[if lt IE 9]>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <![endif]-->
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header Row: Logo + Title -->
+        <div class="header-row">
+            <div class="logo-placeholder">
+                <img src="styles/logo.jpg" alt="Company Logo" onerror="this.style.display='none'">
+            </div>
+            <h1>Mobilization Tracker Dashboard</h1>
+        </div>
+        
+        <!-- Section Header Row: Overview Metrics + Upload -->
+        <div class="section-header-row">
+            <h2>📊 Overview Metrics</h2>
+            <div class="upload-container">
+                <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display: none;">
+                <button class="upload-btn-compact" onclick="document.getElementById('fileInput').click()">
+                    📁 Upload File
+                </button>
+                <div id="uploadStatus"></div>
+            </div>
+        </div>
+        
+        <!-- Two-Level Filter Controls (MRF FILTER REMOVED) -->
+        <div id="filterControls" class="filter-controls hidden">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="divisionFilterMain">Division</label>
+                    <select id="divisionFilterMain" class="filter-dropdown">
+                        <option value="all">All Divisions</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="projectFilter">Project</label>
+                    <select id="projectFilter" class="filter-dropdown">
+                        <option value="all">All Projects</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <button id="clearFilters" class="clear-filters-btn">🔄 Clear All</button>
+                </div>
+            </div>
+            
+            <div class="filter-status" id="filterStatus">
+                Showing all candidates
+            </div>
+        </div>
+        
+        <!-- Results Container -->
+        <div id="results" class="results">
+            <!-- Overview Metrics Grid -->
+            <div class="overview-grid" id="overviewGrid"></div>
+            
+            <!-- Pipeline Cards Container -->
+            <div class="pipeline-cards-container">
+                <!-- Pre-Mobilization Pipeline Card -->
+                <div class="pipeline-card">
+                    <div class="pipeline-card-header">
+                        <div class="pipeline-card-title">📄 Pre-Mobilization Pipeline</div>
+                        <div class="pipeline-card-subtitle">Sequential Stages (Active Candidates Only)</div>
+                    </div>
+                    <div class="pipeline-stages-grid" id="preMobilizationGrid"></div>
+                </div>
+                
+                <!-- Post-Mobilization Pipeline Card -->
+                <div class="pipeline-card">
+                    <div class="pipeline-card-header">
+                        <div class="pipeline-card-title">⚡ Post-Mobilization Pipeline</div>
+                        <div class="pipeline-card-subtitle">Parallel Stages (Mobilized Candidates Only)</div>
+                    </div>
+                    <div class="pipeline-stages-grid" id="postMobilizationGrid"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Data Info Footer -->
+        <div class="data-info" id="dataInfo"></div>
+    </div>
+    
+    <!-- Pending Candidates Modal -->
+    <div id="pendingModal" class="modal" onclick="closeModalOnBackdrop(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 id="modalTitle">Pending Candidates</h3>
+                <button class="modal-close" onclick="closeModal()">✕</button>
+            </div>
+            
+            <div class="modal-controls">
+                <div class="search-container">
+                    <input type="text" id="searchInput" class="search-input" placeholder="Search by name or passport...">
+                    <select id="divisionFilter" class="division-filter">
+                        <option value="">All Divisions</option>
+                    </select>
+                </div>
+                
+                <button onclick="exportPendingData()" class="export-btn">📥 Export CSV</button>
+            </div>
+            
+            <div class="modal-table-container">
+                <div class="table-wrapper">
+                    <table class="pending-table" id="pendingTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Passport</th>
+                                <th>Designation</th>
+                                <th>Division</th>
+                                <th>Project</th>
+                                <th>Remarks</th>
+                                <th>Days in Stage</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pendingTableBody">
+                            <!-- Dynamic content -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <div class="pagination-info" id="paginationInfo">
+                    Showing 0 results
+                </div>
+                <div class="pagination-controls" id="paginationControls">
+                    <button class="pagination-btn" onclick="changePage(-1)" id="prevBtn">‹ Previous</button>
+                    <span id="pageNumbers"></span>
+                    <button class="pagination-btn" onclick="changePage(1)" id="nextBtn">Next ›</button>
+                    <select class="page-size-select" id="pageSizeSelect" onchange="changePageSize()">
+                        <option value="10">10 per page</option>
+                        <option value="20" selected>20 per page</option>
+                        <option value="50">50 per page</option>
+                        <option value="100">100 per page</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Modules - UPDATED LOADING ORDER WITH DAYS CALCULATION -->
+    <!-- Configuration -->
+    <script src="scripts/target-config.js"></script>
+    
+    <!-- Core Business Logic -->
+    <script src="scripts/calculator.js"></script>
+    <script src="scripts/file-processor.js"></script>
+    <script src="scripts/days-calculator.js"></script>
+    
+    <!-- UI Modules -->
+    <script src="scripts/dashboard-display.js"></script>
+    <script src="scripts/filter-manager.js"></script>
+    <script src="scripts/modal-system.js"></script>
+    
+    <!-- Dashboard Logic -->
+    <script src="scripts/dashboard.js"></script>
+    
+    <!-- Main Coordination -->
+    <script src="scripts/main.js"></script>
+</body>
+</html>
